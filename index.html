@@ -1,136 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Flipbook</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Brochure Flip</title>
 
-  <!-- Turn.js (page flip effect) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-  <!-- PDF.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
 
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
+  #viewer {
+    position: relative;
+    width: 90vw;
+    height: 90vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-    #flipbook {
-      width: 90vw;
-      height: 90vh;
-    }
+  canvas {
+    display: none;
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
 
-    .page {
-      background: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+  canvas.active {
+    display: block;
+  }
 
-    canvas {
-      max-width: 100%;
-      max-height: 100%;
-    }
+  button {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: none;
+    font-size: 28px;
+    padding: 12px 18px;
+    cursor: pointer;
+    border-radius: 50%;
+    user-select: none;
+  }
 
-    /* Right-side navigation button */
-    #nextBtn {
-      position: fixed;
-      right: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      font-size: 24px;
-      padding: 15px 20px;
-      cursor: pointer;
-      border-radius: 50%;
-    }
-
-    #prevBtn {
-      position: fixed;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      font-size: 24px;
-      padding: 15px 20px;
-      cursor: pointer;
-      border-radius: 50%;
-    }
-  </style>
+  #prev { left: 20px; }
+  #next { right: 20px; }
+</style>
 </head>
+
 <body>
 
-<div id="flipbook"></div>
+<div id="viewer"></div>
 
-<button id="prevBtn">◀</button>
-<button id="nextBtn">▶</button>
+<button id="prev">◀</button>
+<button id="next">▶</button>
 
 <script>
-  const url = "brochure.pdf"; // rename your PDF to this
+const url = "brochure.pdf";
 
-  const flipbook = document.getElementById("flipbook");
+const viewer = document.getElementById("viewer");
 
-  pdfjsLib.getDocument(url).promise.then(pdf => {
-    const totalPages = pdf.numPages;
+let pages = [];
+let current = 0;
 
-    const renderPage = (pageNum) => {
-      return pdf.getPage(pageNum).then(page => {
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
+pdfjsLib.getDocument(url).promise.then(async pdf => {
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
 
-        return page.render({
-          canvasContext: context,
-          viewport: viewport
-        }).promise.then(() => canvas);
-      });
-    };
+    const viewport = page.getViewport({ scale: 2 });
 
-    const loadPages = async () => {
-      for (let i = 1; i <= totalPages; i++) {
-        const canvas = await renderPage(i);
-        const div = document.createElement("div");
-        div.className = "page";
-        div.appendChild(canvas);
-        flipbook.appendChild(div);
-      }
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-      // Initialize flipbook
-      $(flipbook).turn({
-        width: flipbook.clientWidth,
-        height: flipbook.clientHeight,
-        autoCenter: true
-      });
-    };
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
 
-    loadPages();
-  });
+    await page.render({
+      canvasContext: ctx,
+      viewport: viewport
+    }).promise;
 
-  document.getElementById("nextBtn").onclick = () => {
-    $(flipbook).turn("next");
-  };
+    viewer.appendChild(canvas);
+    pages.push(canvas);
+  }
 
-  document.getElementById("prevBtn").onclick = () => {
-    $(flipbook).turn("previous");
-  };
+  showPage(0);
+});
+
+function showPage(index) {
+  pages.forEach(p => p.classList.remove("active"));
+  if (pages[index]) {
+    pages[index].classList.add("active");
+  }
+}
+
+document.getElementById("next").onclick = () => {
+  if (current < pages.length - 1) {
+    current++;
+    showPage(current);
+  }
+};
+
+document.getElementById("prev").onclick = () => {
+  if (current > 0) {
+    current--;
+    showPage(current);
+  }
+};
 </script>
-
-<!-- jQuery (required for turn.js) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
 </body>
 </html>
