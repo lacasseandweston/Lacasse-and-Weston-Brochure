@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Flipbook</title>
+
+  <!-- Turn.js (page flip effect) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script>
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #flipbook {
+      width: 90vw;
+      height: 90vh;
+    }
+
+    .page {
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    /* Right-side navigation button */
+    #nextBtn {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 24px;
+      padding: 15px 20px;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    #prevBtn {
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 24px;
+      padding: 15px 20px;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+
+<div id="flipbook"></div>
+
+<button id="prevBtn">◀</button>
+<button id="nextBtn">▶</button>
+
+<script>
+  const url = "brochure.pdf"; // rename your PDF to this
+
+  const flipbook = document.getElementById("flipbook");
+
+  pdfjsLib.getDocument(url).promise.then(pdf => {
+    const totalPages = pdf.numPages;
+
+    const renderPage = (pageNum) => {
+      return pdf.getPage(pageNum).then(page => {
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        return page.render({
+          canvasContext: context,
+          viewport: viewport
+        }).promise.then(() => canvas);
+      });
+    };
+
+    const loadPages = async () => {
+      for (let i = 1; i <= totalPages; i++) {
+        const canvas = await renderPage(i);
+        const div = document.createElement("div");
+        div.className = "page";
+        div.appendChild(canvas);
+        flipbook.appendChild(div);
+      }
+
+      // Initialize flipbook
+      $(flipbook).turn({
+        width: flipbook.clientWidth,
+        height: flipbook.clientHeight,
+        autoCenter: true
+      });
+    };
+
+    loadPages();
+  });
+
+  document.getElementById("nextBtn").onclick = () => {
+    $(flipbook).turn("next");
+  };
+
+  document.getElementById("prevBtn").onclick = () => {
+    $(flipbook).turn("previous");
+  };
+</script>
+
+<!-- jQuery (required for turn.js) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+</body>
+</html>
